@@ -8,25 +8,28 @@ public class PlayerController : MonoBehaviour
     [SerializeField, Range(0f, 10f)] float jumpHeight = 2f;
     [SerializeField, Range(0, 5)] int maxAirJumps = 0;
     [SerializeField, Range(0, 90)] float maxGroundAngle = 25f;
-    
-    private Rigidbody body;
-    private Vector3 velocity, desiredVelocity;
-    private Vector3 contactNormal;
-    private bool desiredJump;
-    private int groundContactCount;
-    private int jumpPhase;
-    private float minGroundDotProduct;
+    [SerializeField] private float maxDistancePickUp = 1f;
 
-    private bool OnGround => groundContactCount > 0;
+    private Rigidbody _body;
+    private Vector3 _velocity, _desiredVelocity;
+    private Vector3 _contactNormal;
+    private bool _desiredJump;
+    private int _groundContactCount;
+    private int _jumpPhase;
+    private float _minGroundDotProduct;
+    private bool _hasCamera = false;
+    private Transform _portableCamera;
+
+    private bool OnGround => _groundContactCount > 0;
 
     private void OnValidate()
     {
-        minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
+        _minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
     }
 
     private void Awake()
     {
-        body = GetComponent<Rigidbody>();
+        _body = GetComponent<Rigidbody>();
         OnValidate();
     }
 
@@ -37,11 +40,29 @@ public class PlayerController : MonoBehaviour
         playerInput.y = Input.GetAxis("Vertical");
         playerInput = Vector2.ClampMagnitude(playerInput, 1f);
 
-        desiredVelocity =
+        _desiredVelocity =
             new Vector3(playerInput.x, 0f, playerInput.y) * maxSpeed;
+        _desiredJump |= Input.GetButtonDown("Jump");
+        if (Input.GetButtonDown("Fire1") && !_hasCamera && Physics.Raycast(
+            GameManager.Instance.VCamera.transform.position,
+            transform.forward, out RaycastHit hit,
+            maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))
+        {
+            //picking the camera
+            _portableCamera = hit.transform.parent.transform;
+            _portableCamera.SetParent(transform);
+            _hasCamera = true;
+        }
+        else if (Input.GetButtonDown("Fire1") && _hasCamera)
+        {
+            //dropping the camera
+            _portableCamera.parent = null;
+            _portableCamera = null;
+            _hasCamera = false;
+        }
 
-        desiredJump |= Input.GetButtonDown("Jump");
-        transform.rotation = Quaternion.Euler(0f, GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value, 0f);
+        transform.rotation = Quaternion.Euler(0f,
+            GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value, 0f);
     }
 
     void FixedUpdate()
@@ -51,36 +72,36 @@ public class PlayerController : MonoBehaviour
         UpdateState();
         AdjustVelocity();
 
-        if (desiredJump)
+        if (_desiredJump)
         {
-            desiredJump = false;
+            _desiredJump = false;
             Jump();
         }
 
-        body.velocity = velocity;
+        _body.velocity = _velocity;
         ClearState();
     }
 
     void ClearState()
     {
-        groundContactCount = 0;
-        contactNormal = Vector3.zero;
+        _groundContactCount = 0;
+        _contactNormal = Vector3.zero;
     }
 
     void UpdateState()
     {
-        velocity = body.velocity;
+        _velocity = _body.velocity;
         if (OnGround)
         {
-            jumpPhase = 0;
-            if (groundContactCount > 1)
+            _jumpPhase = 0;
+            if (_groundContactCount > 1)
             {
-                contactNormal.Normalize();
+                _contactNormal.Normalize();
             }
         }
         else
         {
-            contactNormal = Vector3.up;
+            _contactNormal = Vector3.up;
         }
     }
 
@@ -89,33 +110,33 @@ public class PlayerController : MonoBehaviour
         Vector3 xAxis = ProjectOnContactPlane(transform.right).normalized;
         Vector3 zAxis = ProjectOnContactPlane(transform.forward).normalized;
 
-        float currentX = Vector3.Dot(velocity, xAxis);
-        float currentZ = Vector3.Dot(velocity, zAxis);
+        float currentX = Vector3.Dot(_velocity, xAxis);
+        float currentZ = Vector3.Dot(_velocity, zAxis);
 
         float acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
         float maxSpeedChange = acceleration * Time.deltaTime;
 
         float newX =
-            Mathf.MoveTowards(currentX, desiredVelocity.x, maxSpeedChange);
+            Mathf.MoveTowards(currentX, _desiredVelocity.x, maxSpeedChange);
         float newZ =
-            Mathf.MoveTowards(currentZ, desiredVelocity.z, maxSpeedChange);
+            Mathf.MoveTowards(currentZ, _desiredVelocity.z, maxSpeedChange);
 
-        velocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
+        _velocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
     }
 
     void Jump()
     {
-        if (OnGround || jumpPhase < maxAirJumps)
+        if (OnGround || _jumpPhase < maxAirJumps)
         {
-            jumpPhase += 1;
+            _jumpPhase += 1;
             float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
-            float alignedSpeed = Vector3.Dot(velocity, contactNormal);
+            float alignedSpeed = Vector3.Dot(_velocity, _contactNormal);
             if (alignedSpeed > 0f)
             {
                 jumpSpeed = Mathf.Max(jumpSpeed - alignedSpeed, 0f);
             }
 
-            velocity += contactNormal * jumpSpeed;
+            _velocity += _contactNormal * jumpSpeed;
         }
     }
 
@@ -134,16 +155,16 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = collision.GetContact(i).normal;
-            if (normal.y >= minGroundDotProduct)
+            if (normal.y >= _minGroundDotProduct)
             {
-                groundContactCount += 1;
-                contactNormal += normal;
+                _groundContactCount += 1;
+                _contactNormal += normal;
             }
         }
     }
 
     Vector3 ProjectOnContactPlane(Vector3 vector)
     {
-        return vector - contactNormal * Vector3.Dot(vector, contactNormal);
+        return vector - _contactNormal * Vector3.Dot(vector, _contactNormal);
     }
 }

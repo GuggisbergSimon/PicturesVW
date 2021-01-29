@@ -9,6 +9,9 @@ public class GameManager : MonoBehaviour
 
     private CinemachineVirtualCamera _vCamera;
     public CinemachineVirtualCamera VCamera => _vCamera;
+
+    /*private PortableCamera _pCamera;
+    public PortableCamera PCamera => _pCamera;*/
     public static GameManager Instance { get; private set; }
 
     private void OnEnable()
@@ -32,6 +35,7 @@ public class GameManager : MonoBehaviour
         //_player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
         _player = FindObjectOfType<PlayerController>();
         _vCamera = FindObjectOfType<CinemachineVirtualCamera>();
+        //_pCamera = FindObjectOfType<PortableCamera>();
     }
 
     private void Awake()

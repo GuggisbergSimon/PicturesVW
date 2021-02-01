@@ -3,8 +3,10 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField, Range(0f, 100f)] float maxSpeed = 10f;
-    [SerializeField, Range(0f, 100f)] float maxAcceleration = 10f, maxAirAcceleration = 1f;
+    //part of the code is taken from catlikecoding's tutorial on movement : https://catlikecoding.com/unity/tutorials/movement/
+    
+    [SerializeField, Range(0f, 100f)] float maxSpeed = 10f, maxSprintSpeed = 20f;
+    [SerializeField, Range(0f, 100f)] float maxAcceleration = 10f, maxSprintAcceleration = 20f, maxAirAcceleration = 1f;
     [SerializeField, Range(0f, 10f)] float jumpHeight = 2f;
     [SerializeField, Range(0, 5)] int maxAirJumps = 0;
     [SerializeField, Range(0, 90)] float maxGroundAngle = 25f;
@@ -39,10 +41,11 @@ public class PlayerController : MonoBehaviour
         playerInput.x = Input.GetAxis("Horizontal");
         playerInput.y = Input.GetAxis("Vertical");
         playerInput = Vector2.ClampMagnitude(playerInput, 1f);
-
-        _desiredVelocity =
-            new Vector3(playerInput.x, 0f, playerInput.y) * maxSpeed;
+        
+            _desiredVelocity =
+            new Vector3(playerInput.x, 0f, playerInput.y) * (Input.GetButton("Sprint") ? maxSprintSpeed : maxSpeed);
         _desiredJump |= Input.GetButtonDown("Jump");
+
         if (Input.GetButtonDown("Fire1") && !_hasCamera && Physics.Raycast(
             GameManager.Instance.VCamera.transform.position,
             transform.forward, out RaycastHit hit,
@@ -113,7 +116,7 @@ public class PlayerController : MonoBehaviour
         float currentX = Vector3.Dot(_velocity, xAxis);
         float currentZ = Vector3.Dot(_velocity, zAxis);
 
-        float acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
+        float acceleration = OnGround ? Input.GetButton("Sprint") ? maxSprintAcceleration : maxAcceleration : maxAirAcceleration;
         float maxSpeedChange = acceleration * Time.deltaTime;
 
         float newX =

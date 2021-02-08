@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Cinemachine;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -74,5 +76,44 @@ public class GameManager : MonoBehaviour
 #else
 		Application.Quit();
 #endif
+    }
+
+    //code taken from Catlikecoding : https://catlikecoding.com/unity/tutorials/hex-map/part-12/
+    public void Save()
+    {
+        string path = Path.Combine(Application.persistentDataPath, "save.me");
+        using (BinaryWriter writer = new BinaryWriter(File.Open(path, FileMode.Create)))
+        {
+            writer.Write((double) Player.transform.position.x);
+            writer.Write((double) Player.transform.position.y);
+            writer.Write((double) Player.transform.position.z);
+        }
+    }
+
+    public void Load()
+    {
+        string path = Path.Combine(Application.persistentDataPath, "save.me");
+        using (BinaryReader reader = new BinaryReader(File.OpenRead(path)))
+        {
+            Player.transform.position = Vector3.right * (float) reader.ReadDouble() +
+                                        Vector3.up * (float) reader.ReadDouble() +
+                                        Vector3.forward * (float) reader.ReadDouble();
+        }
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            QuitGame();
+        }
+        else if (Input.GetKeyDown(KeyCode.F5))
+        {
+            Save();
+        }
+        else if (Input.GetKeyDown(KeyCode.F9))
+        {
+            Load();
+        }
     }
 }

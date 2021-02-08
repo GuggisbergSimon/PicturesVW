@@ -8,7 +8,7 @@ public class Mirror : MonoBehaviour
     private RenderTexture _renderTexture;
 
     private void Reset()
-    {   
+    {
         _renderer = GetComponent<MeshRenderer>();
         _cam = GetComponentInChildren<Camera>();
     }

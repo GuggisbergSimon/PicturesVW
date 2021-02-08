@@ -9,9 +9,10 @@ public class PortableCamera : MonoBehaviour
     [SerializeField] private int minZoom = 5, maxZoom = 150;
     private Camera _cam;
     private RenderTexture _renderTexture;
+    private Rigidbody _body;
+    private Collider _collider;
 
-
-    void Reset()
+    private void Reset()
     {
         if (!_cam)
         {
@@ -19,9 +20,11 @@ public class PortableCamera : MonoBehaviour
         }
     }
 
-    void Awake()
+    private void Awake()
     {
         Reset();
+        _body = GetComponent<Rigidbody>();
+        _collider = GetComponentInChildren<Collider>();
     }
 
     private void Start()
@@ -34,6 +37,7 @@ public class PortableCamera : MonoBehaviour
         }
 
         _cam.targetTexture = _renderTexture;
+        RefreshZoom();
         //for live feed
         //GameManager.Instance.UIManager.Feed.texture = _cam.targetTexture;
     }
@@ -52,16 +56,36 @@ public class PortableCamera : MonoBehaviour
         if (Input.GetButtonDown("Zoom+"))
         {
             _cam.fieldOfView += zoomSpeed;
-            GameManager.Instance.UIManager.ZoomPercentage.fillAmount = (minZoom + _cam.fieldOfView) / (maxZoom - minZoom);
+            RefreshZoom();
         }
         else if (Input.GetButtonDown("Zoom-"))
         {
             _cam.fieldOfView -= zoomSpeed;
-            GameManager.Instance.UIManager.ZoomPercentage.fillAmount = (minZoom + _cam.fieldOfView) / (maxZoom - minZoom);
+            RefreshZoom();
         }
     }
 
-    void OnDisable()
+    private void RefreshZoom()
+    {
+        GameManager.Instance.UIManager.ZoomPercentage.fillAmount = (minZoom + _cam.fieldOfView) / (maxZoom - minZoom);
+    }
+
+    public void Pickup(bool pickingUp)
+    {
+        if (pickingUp)
+        {
+            _body.Sleep();
+            _collider.enabled = false;
+            //todo reset position + rotation
+        }
+        else
+        {
+            _body.WakeUp();
+            _collider.enabled = true;
+        }
+    }
+
+    private void OnDisable()
     {
         _renderTexture.DiscardContents();
         _renderTexture.Release();

@@ -5,71 +5,71 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] Transform playerInputSpace = default;
-    [SerializeField, Range(0f, 100f)] float 
-        maxSpeed = 10f, 
-        maxClimbSpeed = 4f, 
+    [SerializeField] private Transform playerInputSpace = default;
+    [SerializeField, Range(0f, 100f)] private float
+        maxSpeed = 10f,
+        maxClimbSpeed = 4f,
         maxSwimSpeed = 5f,
         maxSprintSpeed = 20f;
-    [SerializeField, Range(0f, 100f)] float
+    [SerializeField, Range(0f, 100f)] private float
         maxAcceleration = 10f,
         maxAirAcceleration = 1f,
         maxClimbAcceleration = 40f,
         maxSwimAcceleration = 5f,
         maxSprintAcceleration = 20f;
-    [SerializeField, Range(0f, 10f)] float jumpHeight = 2f;
-    [SerializeField, Range(0, 5)] int maxAirJumps = 0;
-    [SerializeField, Range(0, 90)] float maxGroundAngle = 25f, maxStairsAngle = 50f;
-    [SerializeField, Range(90, 170)] float maxClimbAngle = 140f;
-    [SerializeField, Range(0f, 100f)] float maxSnapSpeed = 100f;
-    [SerializeField, Min(0f)] float probeDistance = 1f;
-    [SerializeField] float submergenceOffset = 0.5f;
-    [SerializeField, Min(0.1f)] float submergenceRange = 1f;
-    [SerializeField, Min(0f)] float buoyancy = 1f;
-    [SerializeField, Range(0f, 10f)] float waterDrag = 1f;
-    [SerializeField, Range(0.01f, 1f)] float swimThreshold = 0.5f;
-    [SerializeField] LayerMask probeMask = -1, stairsMask = -1, climbMask = -1, waterMask = 0;
-    [SerializeField] Material
+    [SerializeField, Range(0f, 10f)] private float jumpHeight = 2f;
+    [SerializeField, Range(0, 5)] private int maxAirJumps = 0;
+    [SerializeField, Range(0, 90)] private float maxGroundAngle = 25f, maxStairsAngle = 50f;
+    [SerializeField, Range(90, 170)] private float maxClimbAngle = 140f;
+    [SerializeField, Range(0f, 100f)] private float maxSnapSpeed = 100f;
+    [SerializeField, Min(0f)] private float probeDistance = 1f;
+    [SerializeField] private float submergenceOffset = 0.5f;
+    [SerializeField, Min(0.1f)] private float submergenceRange = 1f;
+    [SerializeField, Min(0f)] private float buoyancy = 1f;
+    [SerializeField, Range(0f, 10f)] private float waterDrag = 1f;
+    [SerializeField, Range(0.01f, 1f)] private float swimThreshold = 0.5f;
+    [SerializeField] private LayerMask probeMask = -1, stairsMask = -1, climbMask = -1, waterMask = 0;
+    [SerializeField] private Material
         normalMaterial = default,
         climbingMaterial = default,
         swimmingMaterial = default;
     [SerializeField] private float maxDistancePickUp = 2f;
 
-    Rigidbody body, connectedBody, previousConnectedBody;
-    Vector3 playerInput;
-    Vector3 velocity, connectionVelocity;
-    Vector3 connectionWorldPosition, connectionLocalPosition;
-    Vector3 upAxis, rightAxis, forwardAxis;
-    bool desiredJump, desiresClimbing;
-    Vector3 contactNormal, steepNormal, climbNormal, lastClimbNormal;
-    int groundContactCount, steepContactCount, climbContactCount;
+    private Rigidbody body, connectedBody, previousConnectedBody;
+    private Vector3 playerInput;
+    private Vector3 velocity, connectionVelocity;
+    private Vector3 connectionWorldPosition, connectionLocalPosition;
+    private Vector3 upAxis, rightAxis, forwardAxis;
+    private bool desiredJump, desiresClimbing;
+    private Vector3 contactNormal, steepNormal, climbNormal, lastClimbNormal;
+    private int groundContactCount, steepContactCount, climbContactCount;
     private bool _hasCamera = false;
     private Transform _portableCamera;
-    float submergence;
-    int jumpPhase;
-    float minGroundDotProduct, minStairsDotProduct, minClimbDotProduct;
-    int stepsSinceLastGrounded, stepsSinceLastJump;
-    MeshRenderer meshRenderer;
-    
-    bool OnGround => groundContactCount > 0;
-    bool OnSteep => steepContactCount > 0;
-    bool Climbing => climbContactCount > 0 && stepsSinceLastJump > 2;
-    bool InWater => submergence > 0f;
-    bool Swimming => submergence >= swimThreshold;
+    private float submergence;
+    private int jumpPhase;
+    private float minGroundDotProduct, minStairsDotProduct, minClimbDotProduct;
+    private int stepsSinceLastGrounded, stepsSinceLastJump;
+    private MeshRenderer meshRenderer;
+
+    private bool OnGround => groundContactCount > 0;
+    private bool OnSteep => steepContactCount > 0;
+    private bool Climbing => climbContactCount > 0 && stepsSinceLastJump > 2;
+    private bool InWater => submergence > 0f;
+    private bool Swimming => submergence >= swimThreshold;
 
     public void PreventSnapToGround()
     {
         stepsSinceLastJump = -1;
     }
 
-    void OnValidate()
+    private void OnValidate()
     {
         minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
         minStairsDotProduct = Mathf.Cos(maxStairsAngle * Mathf.Deg2Rad);
         minClimbDotProduct = Mathf.Cos(maxClimbAngle * Mathf.Deg2Rad);
     }
 
-    void Awake()
+    private void Awake()
     {
         body = GetComponent<Rigidbody>();
         body.useGravity = false;
@@ -77,7 +77,7 @@ public class PlayerController : MonoBehaviour
         OnValidate();
     }
 
-    void Update()
+    private void Update()
     {
         playerInput.x = Input.GetAxis("Horizontal");
         playerInput.y = Input.GetAxis("Vertical");
@@ -105,35 +105,39 @@ public class PlayerController : MonoBehaviour
             desiredJump |= Input.GetButtonDown("Jump");
             desiresClimbing = Input.GetButton("Fire1");
         }
-        
+
+        //turns the player towards where the cinemachine is pointing
+        transform.rotation = Quaternion.Euler(0f,
+            GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value, 0f);
+
         //TODO properly raycast in the direction the player is looking
         //Camera Pickup/Drop
-        if (Input.GetButtonDown("Fire2") && !_hasCamera && Physics.Raycast(
-            GameManager.Instance.VCamera.transform.position,
-            transform.forward, out RaycastHit hit,
+        //float engel = GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value;
+        //Ray r = new Ray(GameManager.Instance.VCamera.transform.position, Quaternion.AngleAxis(engel, Vector3.forward) * transform.forward);
+        Ray r = new Ray(GameManager.Instance.VCamera.transform.position, transform.forward);
+        //Debug.DrawLine(r.origin, r.origin + r.direction * maxDistancePickUp, Color.green, 0.2f);
+        if (Input.GetButtonDown("Fire2") && !_hasCamera && Physics.Raycast(r, out RaycastHit hit,
             maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))
         {
-            _portableCamera = hit.transform.parent.transform;
+            _portableCamera = hit.transform;
             _portableCamera.SetParent(transform);
             _hasCamera = true;
+            _portableCamera.GetComponent<PortableCamera>().Pickup(true);
         }
         else if (Input.GetButtonDown("Fire2") && _hasCamera)
         {
+            _portableCamera.GetComponent<PortableCamera>().Pickup(false);
             _portableCamera.parent = null;
             _portableCamera = null;
             _hasCamera = false;
         }
-        
-        //turns the player towards where the cinemachine is pointing
-        transform.rotation = Quaternion.Euler(0f,
-            GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value, 0f);
 
         meshRenderer.material =
             Climbing ? climbingMaterial :
             Swimming ? swimmingMaterial : normalMaterial;
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         Vector3 gravity = CustomGravity.GetGravity(body.position, out upAxis);
         UpdateState();
@@ -182,7 +186,7 @@ public class PlayerController : MonoBehaviour
         ClearState();
     }
 
-    void ClearState()
+    private void ClearState()
     {
         groundContactCount = steepContactCount = climbContactCount = 0;
         contactNormal = steepNormal = climbNormal = Vector3.zero;
@@ -192,7 +196,7 @@ public class PlayerController : MonoBehaviour
         submergence = 0f;
     }
 
-    void UpdateState()
+    private void UpdateState()
     {
         stepsSinceLastGrounded += 1;
         stepsSinceLastJump += 1;
@@ -227,7 +231,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void UpdateConnectionState()
+    private void UpdateConnectionState()
     {
         if (connectedBody == previousConnectedBody)
         {
@@ -243,7 +247,7 @@ public class PlayerController : MonoBehaviour
         );
     }
 
-    bool CheckClimbing()
+    private bool CheckClimbing()
     {
         if (Climbing)
         {
@@ -265,7 +269,7 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
-    bool CheckSwimming()
+    private bool CheckSwimming()
     {
         if (Swimming)
         {
@@ -277,7 +281,7 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
-    bool SnapToGround()
+    private bool SnapToGround()
     {
         if (stepsSinceLastGrounded > 1 || stepsSinceLastJump <= 2 || InWater)
         {
@@ -316,7 +320,7 @@ public class PlayerController : MonoBehaviour
         return true;
     }
 
-    bool CheckSteepContacts()
+    private bool CheckSteepContacts()
     {
         if (steepContactCount > 1)
         {
@@ -334,7 +338,7 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
-    void AdjustVelocity()
+    private void AdjustVelocity()
     {
         float acceleration, speed;
         Vector3 xAxis, zAxis;
@@ -358,7 +362,9 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            acceleration = OnGround ? Input.GetButton("Fire3") ? maxSprintAcceleration : maxAcceleration : maxAirAcceleration;
+            acceleration = OnGround
+                ? Input.GetButton("Fire3") ? maxSprintAcceleration : maxAcceleration
+                : maxAirAcceleration;
             speed = OnGround && desiresClimbing ? maxClimbSpeed : Input.GetButton("Fire3") ? maxSprintSpeed : maxSpeed;
             xAxis = rightAxis;
             zAxis = forwardAxis;
@@ -390,7 +396,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void Jump(Vector3 gravity)
+    private void Jump(Vector3 gravity)
     {
         Vector3 jumpDirection;
         if (OnGround)
@@ -434,17 +440,17 @@ public class PlayerController : MonoBehaviour
         velocity += jumpDirection * jumpSpeed;
     }
 
-    void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision collision)
     {
         EvaluateCollision(collision);
     }
 
-    void OnCollisionStay(Collision collision)
+    private void OnCollisionStay(Collision collision)
     {
         EvaluateCollision(collision);
     }
 
-    void EvaluateCollision(Collision collision)
+    private void EvaluateCollision(Collision collision)
     {
         if (Swimming)
         {
@@ -489,7 +495,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
         if ((waterMask & (1 << other.gameObject.layer)) != 0)
         {
@@ -497,7 +503,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void OnTriggerStay(Collider other)
+    private void OnTriggerStay(Collider other)
     {
         if ((waterMask & (1 << other.gameObject.layer)) != 0)
         {
@@ -505,7 +511,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void EvaluateSubmergence(Collider collider)
+    private void EvaluateSubmergence(Collider collider)
     {
         if (Physics.Raycast(
             body.position + upAxis * submergenceOffset,
@@ -526,12 +532,12 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    Vector3 ProjectDirectionOnPlane(Vector3 direction, Vector3 normal)
+    private Vector3 ProjectDirectionOnPlane(Vector3 direction, Vector3 normal)
     {
         return (direction - normal * Vector3.Dot(direction, normal)).normalized;
     }
 
-    float GetMinDot(int layer)
+    private float GetMinDot(int layer)
     {
         return (stairsMask & (1 << layer)) == 0 ? minGroundDotProduct : minStairsDotProduct;
     }

@@ -10,6 +10,9 @@ public class GameManager : MonoBehaviour
     private CinemachineVirtualCamera _vCamera;
     public CinemachineVirtualCamera VCamera => _vCamera;
 
+    private UIManager _uiManager;
+    public UIManager UIManager => _uiManager;
+
     /*private PortableCamera _pCamera;
     public PortableCamera PCamera => _pCamera;*/
     public static GameManager Instance { get; private set; }
@@ -35,6 +38,7 @@ public class GameManager : MonoBehaviour
         //_player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
         _player = FindObjectOfType<PlayerController>();
         _vCamera = FindObjectOfType<CinemachineVirtualCamera>();
+        _uiManager = FindObjectOfType<UIManager>();
         //_pCamera = FindObjectOfType<PortableCamera>();
     }
 

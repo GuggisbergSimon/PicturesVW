@@ -108,13 +108,13 @@ public class PlayerController : MonoBehaviour
 
         //turns the player towards where the cinemachine is pointing
         transform.rotation = Quaternion.Euler(0f,
-            GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value, 0f);
+            GameManager.Instance.LevelManager.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value, 0f);
 
         //TODO properly raycast in the direction the player is looking
         //Camera Pickup/Drop
         //float engel = GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value;
         //Ray r = new Ray(GameManager.Instance.VCamera.transform.position, Quaternion.AngleAxis(engel, Vector3.forward) * transform.forward);
-        Ray r = new Ray(GameManager.Instance.VCamera.transform.position, transform.forward);
+        Ray r = new Ray(GameManager.Instance.LevelManager.VCamera.transform.position, transform.forward);
         //Debug.DrawLine(r.origin, r.origin + r.direction * maxDistancePickUp, Color.green, 0.2f);
         if (Input.GetButtonDown("Fire2") && !_hasCamera && Physics.Raycast(r, out RaycastHit hit,
             maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))

@@ -8,6 +8,7 @@ public class PortableCamera : MonoBehaviour
     [SerializeField] private int zoomSpeed = 5;
     [SerializeField] private int minZoom = 5, maxZoom = 150;
     private Camera _cam;
+    public Camera Cam => _cam;
     private RenderTexture _renderTexture;
     private Rigidbody _body;
     private Collider _collider;
@@ -65,7 +66,7 @@ public class PortableCamera : MonoBehaviour
         }
     }
 
-    private void RefreshZoom()
+    public void RefreshZoom()
     {
         GameManager.Instance.UIManager.ZoomPercentage.fillAmount = (minZoom + _cam.fieldOfView) / (maxZoom - minZoom);
     }

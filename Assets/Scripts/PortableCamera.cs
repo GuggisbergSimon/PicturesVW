@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnityEngine;
 
 public class PortableCamera : MonoBehaviour
@@ -51,7 +52,10 @@ public class PortableCamera : MonoBehaviour
             Texture2D texture2D = new Texture2D(textureSize.x, textureSize.y);
             texture2D.ReadPixels(new Rect(0, 0, _renderTexture.width, _renderTexture.height), 0, 0);
             texture2D.Apply();
+            //apply on hud
             GameManager.Instance.UIManager.Feed.texture = texture2D;
+            //save as a file
+            File.WriteAllBytes("capture.png",texture2D.EncodeToPNG());
         }
 
         if (Input.GetButtonDown("Zoom+"))

@@ -2,109 +2,84 @@
 
 using Cinemachine;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private Transform playerInputSpace = default;
     [SerializeField, Range(0f, 100f)] private float
         maxSpeed = 10f,
-        maxClimbSpeed = 4f,
-        maxSwimSpeed = 5f,
         maxSprintSpeed = 20f;
     [SerializeField, Range(0f, 100f)] private float
         maxAcceleration = 10f,
         maxAirAcceleration = 1f,
-        maxClimbAcceleration = 40f,
-        maxSwimAcceleration = 5f,
         maxSprintAcceleration = 20f;
     [SerializeField, Range(0f, 10f)] private float jumpHeight = 2f;
     [SerializeField, Range(0, 5)] private int maxAirJumps = 0;
     [SerializeField, Range(0, 90)] private float maxGroundAngle = 25f, maxStairsAngle = 50f;
-    [SerializeField, Range(90, 170)] private float maxClimbAngle = 140f;
     [SerializeField, Range(0f, 100f)] private float maxSnapSpeed = 100f;
     [SerializeField, Min(0f)] private float probeDistance = 1f;
-    [SerializeField] private float submergenceOffset = 0.5f;
-    [SerializeField, Min(0.1f)] private float submergenceRange = 1f;
-    [SerializeField, Min(0f)] private float buoyancy = 1f;
-    [SerializeField, Range(0f, 10f)] private float waterDrag = 1f;
-    [SerializeField, Range(0.01f, 1f)] private float swimThreshold = 0.5f;
-    [SerializeField] private LayerMask probeMask = -1, stairsMask = -1, climbMask = -1, waterMask = 0;
-    [SerializeField] private Material
-        normalMaterial = default,
-        climbingMaterial = default,
-        swimmingMaterial = default;
+    [SerializeField] private LayerMask probeMask = -1, stairsMask = -1;
+    [SerializeField] private Material normalMaterial = default;
     [SerializeField] private float maxDistancePickUp = 2f;
 
-    private Rigidbody body, connectedBody, previousConnectedBody;
-    private Vector3 playerInput;
-    private Vector3 velocity, connectionVelocity;
-    private Vector3 connectionWorldPosition, connectionLocalPosition;
-    private Vector3 upAxis, rightAxis, forwardAxis;
-    private bool desiredJump, desiresClimbing;
-    private Vector3 contactNormal, steepNormal, climbNormal, lastClimbNormal;
-    private int groundContactCount, steepContactCount, climbContactCount;
+    private Rigidbody _body, _connectedBody, _previousConnectedBody;
+    private Vector3 _playerInput;
+    private Vector3 _velocity, _connectionVelocity;
+    private Vector3 _connectionWorldPosition, _connectionLocalPosition;
+    private Vector3 _upAxis, _rightAxis, _forwardAxis;
+    private bool _desiredJump;
+    private Vector3 _contactNormal, _steepNormal;
+    private int _groundContactCount, _steepContactCount;
     private bool _hasCamera = false;
     private Transform _portableCamera;
-    private float submergence;
-    private int jumpPhase;
-    private float minGroundDotProduct, minStairsDotProduct, minClimbDotProduct;
-    private int stepsSinceLastGrounded, stepsSinceLastJump;
-    private MeshRenderer meshRenderer;
+    private int _jumpPhase;
+    private float _minGroundDotProduct, _minStairsDotProduct;
+    private int _stepsSinceLastGrounded, _stepsSinceLastJump;
+    private MeshRenderer _meshRenderer;
 
-    private bool OnGround => groundContactCount > 0;
-    private bool OnSteep => steepContactCount > 0;
-    private bool Climbing => climbContactCount > 0 && stepsSinceLastJump > 2;
-    private bool InWater => submergence > 0f;
-    private bool Swimming => submergence >= swimThreshold;
+    private bool OnGround => _groundContactCount > 0;
+    private bool OnSteep => _steepContactCount > 0;
 
     public void PreventSnapToGround()
     {
-        stepsSinceLastJump = -1;
+        _stepsSinceLastJump = -1;
     }
 
     private void OnValidate()
     {
-        minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
-        minStairsDotProduct = Mathf.Cos(maxStairsAngle * Mathf.Deg2Rad);
-        minClimbDotProduct = Mathf.Cos(maxClimbAngle * Mathf.Deg2Rad);
+        _minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
+        _minStairsDotProduct = Mathf.Cos(maxStairsAngle * Mathf.Deg2Rad);
     }
 
     private void Awake()
     {
-        body = GetComponent<Rigidbody>();
-        body.useGravity = false;
-        meshRenderer = GetComponent<MeshRenderer>();
+        _body = GetComponent<Rigidbody>();
+        _body.useGravity = false;
+        _meshRenderer = GetComponent<MeshRenderer>();
         OnValidate();
     }
 
     private void Update()
     {
-        playerInput.x = Input.GetAxis("Horizontal");
-        playerInput.y = Input.GetAxis("Vertical");
-        playerInput.z = Swimming ? Input.GetAxis("UpDown") : 0f;
-        playerInput = Vector3.ClampMagnitude(playerInput, 1f);
+        _playerInput.x = Input.GetAxis("Horizontal");
+        _playerInput.y = Input.GetAxis("Vertical");
+        _playerInput.z = 0f;
+        _playerInput = Vector3.ClampMagnitude(_playerInput, 1f);
 
         if (playerInputSpace)
         {
-            rightAxis = ProjectDirectionOnPlane(playerInputSpace.right, upAxis);
-            forwardAxis =
-                ProjectDirectionOnPlane(playerInputSpace.forward, upAxis);
+            _rightAxis = ProjectDirectionOnPlane(playerInputSpace.right, _upAxis);
+            _forwardAxis =
+                ProjectDirectionOnPlane(playerInputSpace.forward, _upAxis);
         }
         else
         {
-            rightAxis = ProjectDirectionOnPlane(Vector3.right, upAxis);
-            forwardAxis = ProjectDirectionOnPlane(Vector3.forward, upAxis);
+            _rightAxis = ProjectDirectionOnPlane(Vector3.right, _upAxis);
+            _forwardAxis = ProjectDirectionOnPlane(Vector3.forward, _upAxis);
         }
 
-        if (Swimming)
-        {
-            desiresClimbing = false;
-        }
-        else
-        {
-            desiredJump |= Input.GetButtonDown("Jump");
-            desiresClimbing = Input.GetButton("Fire1");
-        }
+        _desiredJump |= Input.GetButtonDown("Jump");
 
         //turns the player towards where the cinemachine is pointing
         transform.rotation = Quaternion.Euler(0f,
@@ -132,99 +107,71 @@ public class PlayerController : MonoBehaviour
             _hasCamera = false;
         }
 
-        meshRenderer.material =
-            Climbing ? climbingMaterial :
-            Swimming ? swimmingMaterial : normalMaterial;
+        _meshRenderer.material = normalMaterial;
     }
 
     private void FixedUpdate()
     {
-        Vector3 gravity = CustomGravity.GetGravity(body.position, out upAxis);
+        Vector3 gravity = CustomGravity.GetGravity(_body.position, out _upAxis);
         UpdateState();
-
-        if (InWater)
-        {
-            velocity *= 1f - waterDrag * submergence * Time.deltaTime;
-        }
 
         AdjustVelocity();
 
-        if (desiredJump)
+        if (_desiredJump)
         {
-            desiredJump = false;
+            _desiredJump = false;
             Jump(gravity);
         }
-
-        if (Climbing)
+        if (OnGround && _velocity.sqrMagnitude < 0.01f)
         {
-            velocity -=
-                contactNormal * (maxClimbAcceleration * 0.9f * Time.deltaTime);
-        }
-        else if (InWater)
-        {
-            velocity +=
-                gravity * ((1f - buoyancy * submergence) * Time.deltaTime);
-        }
-        else if (OnGround && velocity.sqrMagnitude < 0.01f)
-        {
-            velocity +=
-                contactNormal *
-                (Vector3.Dot(gravity, contactNormal) * Time.deltaTime);
-        }
-        else if (desiresClimbing && OnGround)
-        {
-            velocity +=
-                (gravity - contactNormal * (maxClimbAcceleration * 0.9f)) *
-                Time.deltaTime;
+            _velocity +=
+                _contactNormal *
+                (Vector3.Dot(gravity, _contactNormal) * Time.deltaTime);
         }
         else
         {
-            velocity += gravity * Time.deltaTime;
+            _velocity += gravity * Time.deltaTime;
         }
 
-        body.velocity = velocity;
+        _body.velocity = _velocity;
         ClearState();
     }
 
     private void ClearState()
     {
-        groundContactCount = steepContactCount = climbContactCount = 0;
-        contactNormal = steepNormal = climbNormal = Vector3.zero;
-        connectionVelocity = Vector3.zero;
-        previousConnectedBody = connectedBody;
-        connectedBody = null;
-        submergence = 0f;
+        _groundContactCount = _steepContactCount = 0;
+        _contactNormal = _steepNormal = Vector3.zero;
+        _connectionVelocity = Vector3.zero;
+        _previousConnectedBody = _connectedBody;
+        _connectedBody = null;
     }
 
     private void UpdateState()
     {
-        stepsSinceLastGrounded += 1;
-        stepsSinceLastJump += 1;
-        velocity = body.velocity;
-        if (
-            CheckClimbing() || CheckSwimming() ||
-            OnGround || SnapToGround() || CheckSteepContacts()
-        )
+        _stepsSinceLastGrounded += 1;
+        _stepsSinceLastJump += 1;
+        _velocity = _body.velocity;
+        if (OnGround || SnapToGround() || CheckSteepContacts())
         {
-            stepsSinceLastGrounded = 0;
-            if (stepsSinceLastJump > 1)
+            _stepsSinceLastGrounded = 0;
+            if (_stepsSinceLastJump > 1)
             {
-                jumpPhase = 0;
+                _jumpPhase = 0;
             }
 
-            if (groundContactCount > 1)
+            if (_groundContactCount > 1)
             {
-                contactNormal.Normalize();
+                _contactNormal.Normalize();
             }
         }
         else
         {
-            contactNormal = upAxis;
+            _contactNormal = _upAxis;
         }
 
-        if (connectedBody)
+        if (_connectedBody)
         {
-            if (connectedBody.isKinematic || connectedBody.mass >= body.mass)
+            if (_connectedBody.isKinematic || _connectedBody.mass >= _body.mass)
             {
                 UpdateConnectionState();
             }
@@ -233,104 +180,70 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateConnectionState()
     {
-        if (connectedBody == previousConnectedBody)
+        if (_connectedBody == _previousConnectedBody)
         {
             Vector3 connectionMovement =
-                connectedBody.transform.TransformPoint(connectionLocalPosition) -
-                connectionWorldPosition;
-            connectionVelocity = connectionMovement / Time.deltaTime;
+                _connectedBody.transform.TransformPoint(_connectionLocalPosition) -
+                _connectionWorldPosition;
+            _connectionVelocity = connectionMovement / Time.deltaTime;
         }
 
-        connectionWorldPosition = body.position;
-        connectionLocalPosition = connectedBody.transform.InverseTransformPoint(
-            connectionWorldPosition
+        _connectionWorldPosition = _body.position;
+        _connectionLocalPosition = _connectedBody.transform.InverseTransformPoint(
+            _connectionWorldPosition
         );
-    }
-
-    private bool CheckClimbing()
-    {
-        if (Climbing)
-        {
-            if (climbContactCount > 1)
-            {
-                climbNormal.Normalize();
-                float upDot = Vector3.Dot(upAxis, climbNormal);
-                if (upDot >= minGroundDotProduct)
-                {
-                    climbNormal = lastClimbNormal;
-                }
-            }
-
-            groundContactCount = 1;
-            contactNormal = climbNormal;
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool CheckSwimming()
-    {
-        if (Swimming)
-        {
-            groundContactCount = 0;
-            contactNormal = upAxis;
-            return true;
-        }
-
-        return false;
     }
 
     private bool SnapToGround()
     {
-        if (stepsSinceLastGrounded > 1 || stepsSinceLastJump <= 2 || InWater)
+        if (_stepsSinceLastGrounded > 1 || _stepsSinceLastJump <= 2 /*|| InWater*/)
         {
             return false;
         }
 
-        float speed = velocity.magnitude;
+        float speed = _velocity.magnitude;
         if (speed > maxSnapSpeed)
         {
             return false;
         }
 
         if (!Physics.Raycast(
-            body.position, -upAxis, out RaycastHit hit,
+            _body.position, -_upAxis, out RaycastHit hit,
             probeDistance, probeMask, QueryTriggerInteraction.Ignore
         ))
         {
             return false;
         }
 
-        float upDot = Vector3.Dot(upAxis, hit.normal);
+        float upDot = Vector3.Dot(_upAxis, hit.normal);
         if (upDot < GetMinDot(hit.collider.gameObject.layer))
         {
             return false;
         }
 
-        groundContactCount = 1;
-        contactNormal = hit.normal;
-        float dot = Vector3.Dot(velocity, hit.normal);
+        _groundContactCount = 1;
+        _contactNormal = hit.normal;
+        float dot = Vector3.Dot(_velocity, hit.normal);
         if (dot > 0f)
         {
-            velocity = (velocity - hit.normal * dot).normalized * speed;
+            _velocity = (_velocity - hit.normal * dot).normalized * speed;
         }
 
-        connectedBody = hit.rigidbody;
+        _connectedBody = hit.rigidbody;
         return true;
     }
 
     private bool CheckSteepContacts()
     {
-        if (steepContactCount > 1)
+        if (_steepContactCount > 1)
         {
-            steepNormal.Normalize();
-            float upDot = Vector3.Dot(upAxis, steepNormal);
-            if (upDot >= minGroundDotProduct)
+            _steepNormal.Normalize();
+            float upDot = Vector3.Dot(_upAxis, _steepNormal);
+            if (upDot >= _minGroundDotProduct)
             {
-                steepContactCount = 0;
-                groundContactCount = 1;
-                contactNormal = steepNormal;
+                _steepContactCount = 0;
+                _groundContactCount = 1;
+                _contactNormal = _steepNormal;
                 return true;
             }
         }
@@ -342,58 +255,28 @@ public class PlayerController : MonoBehaviour
     {
         float acceleration, speed;
         Vector3 xAxis, zAxis;
-        if (Climbing)
-        {
-            acceleration = maxClimbAcceleration;
-            speed = maxClimbSpeed;
-            xAxis = Vector3.Cross(contactNormal, upAxis);
-            zAxis = upAxis;
-        }
-        else if (InWater)
-        {
-            float swimFactor = Mathf.Min(1f, submergence / swimThreshold);
-            acceleration = Mathf.LerpUnclamped(
-                OnGround ? maxAcceleration : maxAirAcceleration,
-                maxSwimAcceleration, swimFactor
-            );
-            speed = Mathf.LerpUnclamped(maxSpeed, maxSwimSpeed, swimFactor);
-            xAxis = rightAxis;
-            zAxis = forwardAxis;
-        }
-        else
-        {
-            acceleration = OnGround
-                ? Input.GetButton("Fire3") ? maxSprintAcceleration : maxAcceleration
-                : maxAirAcceleration;
-            speed = OnGround && desiresClimbing ? maxClimbSpeed : Input.GetButton("Fire3") ? maxSprintSpeed : maxSpeed;
-            xAxis = rightAxis;
-            zAxis = forwardAxis;
-        }
+        acceleration = OnGround
+            ? Input.GetButton("Fire3") ? maxSprintAcceleration : maxAcceleration
+            : maxAirAcceleration;
+        speed = OnGround && Input.GetButton("Fire3") ? maxSprintSpeed : maxSpeed;
+        xAxis = _rightAxis;
+        zAxis = _forwardAxis;
 
-        xAxis = ProjectDirectionOnPlane(xAxis, contactNormal);
-        zAxis = ProjectDirectionOnPlane(zAxis, contactNormal);
+        xAxis = ProjectDirectionOnPlane(xAxis, _contactNormal);
+        zAxis = ProjectDirectionOnPlane(zAxis, _contactNormal);
 
-        Vector3 relativeVelocity = velocity - connectionVelocity;
+        Vector3 relativeVelocity = _velocity - _connectionVelocity;
         float currentX = Vector3.Dot(relativeVelocity, xAxis);
         float currentZ = Vector3.Dot(relativeVelocity, zAxis);
 
         float maxSpeedChange = acceleration * Time.deltaTime;
 
         float newX =
-            Mathf.MoveTowards(currentX, playerInput.x * speed, maxSpeedChange);
+            Mathf.MoveTowards(currentX, _playerInput.x * speed, maxSpeedChange);
         float newZ =
-            Mathf.MoveTowards(currentZ, playerInput.y * speed, maxSpeedChange);
+            Mathf.MoveTowards(currentZ, _playerInput.y * speed, maxSpeedChange);
 
-        velocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
-
-        if (Swimming)
-        {
-            float currentY = Vector3.Dot(relativeVelocity, upAxis);
-            float newY = Mathf.MoveTowards(
-                currentY, playerInput.z * speed, maxSpeedChange
-            );
-            velocity += upAxis * (newY - currentY);
-        }
+        _velocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
     }
 
     private void Jump(Vector3 gravity)
@@ -401,43 +284,39 @@ public class PlayerController : MonoBehaviour
         Vector3 jumpDirection;
         if (OnGround)
         {
-            jumpDirection = contactNormal;
+            jumpDirection = _contactNormal;
         }
         else if (OnSteep)
         {
-            jumpDirection = steepNormal;
-            jumpPhase = 0;
+            jumpDirection = _steepNormal;
+            _jumpPhase = 0;
         }
-        else if (maxAirJumps > 0 && jumpPhase <= maxAirJumps)
+        else if (maxAirJumps > 0 && _jumpPhase <= maxAirJumps)
         {
-            if (jumpPhase == 0)
+            if (_jumpPhase == 0)
             {
-                jumpPhase = 1;
+                _jumpPhase = 1;
             }
 
-            jumpDirection = contactNormal;
+            jumpDirection = _contactNormal;
         }
         else
         {
             return;
         }
 
-        stepsSinceLastJump = 0;
-        jumpPhase += 1;
+        _stepsSinceLastJump = 0;
+        _jumpPhase += 1;
         float jumpSpeed = Mathf.Sqrt(2f * gravity.magnitude * jumpHeight);
-        if (InWater)
-        {
-            jumpSpeed *= Mathf.Max(0f, 1f - submergence / swimThreshold);
-        }
 
-        jumpDirection = (jumpDirection + upAxis).normalized;
-        float alignedSpeed = Vector3.Dot(velocity, jumpDirection);
+        jumpDirection = (jumpDirection + _upAxis).normalized;
+        float alignedSpeed = Vector3.Dot(_velocity, jumpDirection);
         if (alignedSpeed > 0f)
         {
             jumpSpeed = Mathf.Max(jumpSpeed - alignedSpeed, 0f);
         }
 
-        velocity += jumpDirection * jumpSpeed;
+        _velocity += jumpDirection * jumpSpeed;
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -452,83 +331,31 @@ public class PlayerController : MonoBehaviour
 
     private void EvaluateCollision(Collision collision)
     {
-        if (Swimming)
-        {
-            return;
-        }
 
         int layer = collision.gameObject.layer;
         float minDot = GetMinDot(layer);
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = collision.GetContact(i).normal;
-            float upDot = Vector3.Dot(upAxis, normal);
+            float upDot = Vector3.Dot(_upAxis, normal);
             if (upDot >= minDot)
             {
-                groundContactCount += 1;
-                contactNormal += normal;
-                connectedBody = collision.rigidbody;
+                _groundContactCount += 1;
+                _contactNormal += normal;
+                _connectedBody = collision.rigidbody;
             }
             else
             {
                 if (upDot > -0.01f)
                 {
-                    steepContactCount += 1;
-                    steepNormal += normal;
-                    if (groundContactCount == 0)
+                    _steepContactCount += 1;
+                    _steepNormal += normal;
+                    if (_groundContactCount == 0)
                     {
-                        connectedBody = collision.rigidbody;
+                        _connectedBody = collision.rigidbody;
                     }
                 }
-
-                if (
-                    desiresClimbing && upDot >= minClimbDotProduct &&
-                    (climbMask & (1 << layer)) != 0
-                )
-                {
-                    climbContactCount += 1;
-                    climbNormal += normal;
-                    lastClimbNormal = normal;
-                    connectedBody = collision.rigidbody;
-                }
             }
-        }
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if ((waterMask & (1 << other.gameObject.layer)) != 0)
-        {
-            EvaluateSubmergence(other);
-        }
-    }
-
-    private void OnTriggerStay(Collider other)
-    {
-        if ((waterMask & (1 << other.gameObject.layer)) != 0)
-        {
-            EvaluateSubmergence(other);
-        }
-    }
-
-    private void EvaluateSubmergence(Collider collider)
-    {
-        if (Physics.Raycast(
-            body.position + upAxis * submergenceOffset,
-            -upAxis, out RaycastHit hit, submergenceRange + 1f,
-            waterMask, QueryTriggerInteraction.Collide
-        ))
-        {
-            submergence = 1f - hit.distance / submergenceRange;
-        }
-        else
-        {
-            submergence = 1f;
-        }
-
-        if (Swimming)
-        {
-            connectedBody = collider.attachedRigidbody;
         }
     }
 
@@ -539,6 +366,6 @@ public class PlayerController : MonoBehaviour
 
     private float GetMinDot(int layer)
     {
-        return (stairsMask & (1 << layer)) == 0 ? minGroundDotProduct : minStairsDotProduct;
+        return (stairsMask & (1 << layer)) == 0 ? _minGroundDotProduct : _minStairsDotProduct;
     }
 }

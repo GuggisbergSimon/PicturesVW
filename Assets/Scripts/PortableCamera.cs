@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -8,11 +9,16 @@ public class PortableCamera : MonoBehaviour
     [SerializeField] private Vector2Int textureSize = new Vector2Int(512, 512);
     [SerializeField] private int zoomSpeed = 5;
     [SerializeField] private int minZoom = 5, maxZoom = 150;
+    [SerializeField] private Material liveFeedMaterial = default;
+    [SerializeField] private MeshRenderer camPlaneRenderer = default;
+    [SerializeField] private Transform pivot = default;
+    [SerializeField] private float angleSpeed = 5f;
+    [SerializeField] private float minAngle = 10f, maxAngle = 170f;
     private Camera _cam;
     public Camera Cam => _cam;
     private RenderTexture _renderTexture;
     private Rigidbody _body;
-    private Collider _collider;
+    private Collider[] _colliders;
 
     private void Reset()
     {
@@ -26,7 +32,7 @@ public class PortableCamera : MonoBehaviour
     {
         Reset();
         _body = GetComponent<Rigidbody>();
-        _collider = GetComponentInChildren<Collider>();
+        _colliders = GetComponentsInChildren<Collider>();
     }
 
     private void Start()
@@ -39,7 +45,8 @@ public class PortableCamera : MonoBehaviour
         }
 
         _cam.targetTexture = _renderTexture;
-        RefreshZoom();
+        liveFeedMaterial.mainTexture = _renderTexture;
+        AdjustZoom(0);
         //for live feed
         //GameManager.Instance.UIManager.Feed.texture = _cam.targetTexture;
     }
@@ -57,22 +64,6 @@ public class PortableCamera : MonoBehaviour
             //save as a file
             File.WriteAllBytes("capture.png",texture2D.EncodeToPNG());
         }
-
-        if (Input.GetButtonDown("Zoom+"))
-        {
-            _cam.fieldOfView += zoomSpeed;
-            RefreshZoom();
-        }
-        else if (Input.GetButtonDown("Zoom-"))
-        {
-            _cam.fieldOfView -= zoomSpeed;
-            RefreshZoom();
-        }
-    }
-
-    public void RefreshZoom()
-    {
-        GameManager.Instance.UIManager.ZoomPercentage.fillAmount = (minZoom + _cam.fieldOfView) / (maxZoom - minZoom);
     }
 
     public void Pickup(bool pickingUp)
@@ -80,14 +71,33 @@ public class PortableCamera : MonoBehaviour
         if (pickingUp)
         {
             _body.Sleep();
-            _collider.enabled = false;
+            _body.isKinematic = true;
+            foreach (var c in _colliders)
+            {
+                c.enabled = false;
+            }
             //todo reset position + rotation
         }
         else
         {
             _body.WakeUp();
-            _collider.enabled = true;
+            _body.isKinematic = false;
+            foreach (var c in _colliders)
+            {
+                c.enabled = true;
+            }
         }
+    }
+
+    public void AdjustZoom(int value)
+    {
+        _cam.fieldOfView += value * zoomSpeed;
+        GameManager.Instance.UIManager.ZoomPercentage.fillAmount = (minZoom + _cam.fieldOfView) / (maxZoom - minZoom);
+    }
+
+    public void AdjustRotation(float value)
+    {
+        pivot.Rotate(pivot.right, value * angleSpeed, Space.World);
     }
 
     private void OnDisable()

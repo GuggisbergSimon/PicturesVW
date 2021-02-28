@@ -2,18 +2,20 @@
 
 using Cinemachine;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private Transform playerInputSpace = default;
+
     [SerializeField, Range(0f, 100f)] private float
         maxSpeed = 10f,
         maxSprintSpeed = 20f;
+
     [SerializeField, Range(0f, 100f)] private float
         maxAcceleration = 10f,
         maxAirAcceleration = 1f,
         maxSprintAcceleration = 20f;
+
     [SerializeField, Range(0f, 10f)] private float jumpHeight = 2f;
     [SerializeField, Range(0, 5)] private int maxAirJumps = 0;
     [SerializeField, Range(0, 90)] private float maxGroundAngle = 25f, maxStairsAngle = 50f;
@@ -83,7 +85,8 @@ public class PlayerController : MonoBehaviour
 
         //turns the player towards where the cinemachine is pointing
         transform.rotation = Quaternion.Euler(0f,
-            GameManager.Instance.LevelManager.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value, 0f);
+            GameManager.Instance.LevelManager.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value,
+            0f);
 
         //TODO properly raycast in the direction the player is looking
         //Camera Pickup/Drop
@@ -91,20 +94,42 @@ public class PlayerController : MonoBehaviour
         //Ray r = new Ray(GameManager.Instance.VCamera.transform.position, Quaternion.AngleAxis(engel, Vector3.forward) * transform.forward);
         Ray r = new Ray(GameManager.Instance.LevelManager.VCamera.transform.position, transform.forward);
         //Debug.DrawLine(r.origin, r.origin + r.direction * maxDistancePickUp, Color.green, 0.2f);
-        if (Input.GetButtonDown("Fire2") && !_hasCamera && Physics.Raycast(r, out RaycastHit hit,
-            maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))
+        if ((Input.GetButtonDown("Fire2") ||
+            Input.GetButton("Fire3") &&
+             (Input.GetButtonDown("Zoom+") || Input.GetButtonDown("Zoom-"))) && !_hasCamera &&
+            Physics.Raycast(r, out RaycastHit hit,
+                maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))
         {
-            _portableCamera = hit.transform;
-            _portableCamera.SetParent(transform);
-            _hasCamera = true;
-            _portableCamera.GetComponent<PortableCamera>().Pickup(true);
+            if (Input.GetButtonDown("Fire2"))
+            {
+                _portableCamera = hit.transform;
+                _portableCamera.SetParent(transform);
+                _hasCamera = true;
+                GameManager.Instance.PCamera.Pickup(true);
+            }
+            else if (Input.GetButtonDown("Zoom+"))
+            {
+                GameManager.Instance.PCamera.AdjustRotation(1);
+            }
+            else
+            {
+                GameManager.Instance.PCamera.AdjustRotation(-1);
+            }
         }
         else if (Input.GetButtonDown("Fire2") && _hasCamera)
         {
-            _portableCamera.GetComponent<PortableCamera>().Pickup(false);
+            GameManager.Instance.PCamera.Pickup(false);
             _portableCamera.parent = null;
             _portableCamera = null;
             _hasCamera = false;
+        }
+        else if (Input.GetButtonDown("Zoom+"))
+        {
+            GameManager.Instance.PCamera.AdjustZoom(1);
+        }
+        else if (Input.GetButtonDown("Zoom-"))
+        {
+            GameManager.Instance.PCamera.AdjustZoom(-1);
         }
 
         _meshRenderer.material = normalMaterial;
@@ -122,6 +147,7 @@ public class PlayerController : MonoBehaviour
             _desiredJump = false;
             Jump(gravity);
         }
+
         if (OnGround && _velocity.sqrMagnitude < 0.01f)
         {
             _velocity +=
@@ -331,7 +357,6 @@ public class PlayerController : MonoBehaviour
 
     private void EvaluateCollision(Collision collision)
     {
-
         int layer = collision.gameObject.layer;
         float minDot = GetMinDot(layer);
         for (int i = 0; i < collision.contactCount; i++)

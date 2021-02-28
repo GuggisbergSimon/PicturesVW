@@ -62,6 +62,6 @@ public class LevelManager : MonoBehaviour
                                           Vector3.forward * (float) reader.ReadDouble());
             _pCamera.Cam.fieldOfView = reader.ReadByte();
         }
-        _pCamera.RefreshZoom();
+        _pCamera.AdjustZoom(0);
     }
 }

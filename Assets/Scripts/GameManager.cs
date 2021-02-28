@@ -9,8 +9,8 @@ public class GameManager : MonoBehaviour
     private LevelManager _levelManager;
     public LevelManager LevelManager => _levelManager;
 
-    /*private PortableCamera _pCamera;
-    public PortableCamera PCamera => _pCamera;*/
+    private PortableCamera _pCamera;
+    public PortableCamera PCamera => _pCamera;
     public static GameManager Instance { get; private set; }
 
     private void OnEnable()
@@ -34,7 +34,7 @@ public class GameManager : MonoBehaviour
         //_player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
         _uiManager = FindObjectOfType<UIManager>();
         _levelManager = FindObjectOfType<LevelManager>();
-        //_pCamera = FindObjectOfType<PortableCamera>();
+        _pCamera = FindObjectOfType<PortableCamera>();
     }
 
     private void Awake()

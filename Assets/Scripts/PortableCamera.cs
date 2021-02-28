@@ -64,6 +64,11 @@ public class PortableCamera : MonoBehaviour
             //save as a file
             File.WriteAllBytes("capture.png",texture2D.EncodeToPNG());
         }
+
+        if (_body.isKinematic)
+        {
+            transform.rotation = Quaternion.Euler(0f,transform.rotation.eulerAngles.y,0f);
+        }
     }
 
     public void Pickup(bool pickingUp)
@@ -76,6 +81,7 @@ public class PortableCamera : MonoBehaviour
             {
                 c.enabled = false;
             }
+            
             //todo reset position + rotation
         }
         else

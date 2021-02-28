@@ -1,4 +1,4 @@
-//Code taken from catlikecoding
+//Code mainly taken from catlikecoding
 
 using Cinemachine;
 using UnityEngine;
@@ -88,22 +88,21 @@ public class PlayerController : MonoBehaviour
             GameManager.Instance.LevelManager.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value,
             0f);
 
-        //TODO properly raycast in the direction the player is looking
         //Camera Pickup/Drop
-        //float engel = GameManager.Instance.VCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value;
-        //Ray r = new Ray(GameManager.Instance.VCamera.transform.position, Quaternion.AngleAxis(engel, Vector3.forward) * transform.forward);
-        Ray r = new Ray(GameManager.Instance.LevelManager.VCamera.transform.position, transform.forward);
-        //Debug.DrawLine(r.origin, r.origin + r.direction * maxDistancePickUp, Color.green, 0.2f);
-        if ((Input.GetButtonDown("Fire2") ||
-            Input.GetButton("Fire3") &&
-             (Input.GetButtonDown("Zoom+") || Input.GetButtonDown("Zoom-"))) && !_hasCamera &&
-            Physics.Raycast(r, out RaycastHit hit,
-                maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))
+        Transform head = transform.GetChild(0);
+        head.localRotation = Quaternion.Euler(GameManager.Instance.LevelManager.VCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value, 0f, 0f);
+        Ray r = new Ray(head.position, head.forward );
+        Debug.DrawLine(r.origin, r.origin + r.direction * maxDistancePickUp, Color.green, 0.2f);
+        if (!_hasCamera && Physics.Raycast(r, out RaycastHit hit,
+            maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))
         {
+            GameManager.Instance.UIManager.AltPopup.gameObject.SetActive(true);
+            GameManager.Instance.UIManager.EqPopup.text = "q et e pour ajuster l'angle de la caméra";
+            GameManager.Instance.UIManager.ZoomPercentage.transform.parent.gameObject.SetActive(false);
             if (Input.GetButtonDown("Fire2"))
             {
                 _portableCamera = hit.transform;
-                _portableCamera.SetParent(transform);
+                _portableCamera.SetParent(transform.GetChild(0));
                 _hasCamera = true;
                 GameManager.Instance.PCamera.Pickup(true);
             }
@@ -111,7 +110,7 @@ public class PlayerController : MonoBehaviour
             {
                 GameManager.Instance.PCamera.AdjustRotation(1);
             }
-            else
+            else if (Input.GetButtonDown("Zoom-"))
             {
                 GameManager.Instance.PCamera.AdjustRotation(-1);
             }
@@ -130,6 +129,12 @@ public class PlayerController : MonoBehaviour
         else if (Input.GetButtonDown("Zoom-"))
         {
             GameManager.Instance.PCamera.AdjustZoom(-1);
+        }
+        else
+        {
+            GameManager.Instance.UIManager.AltPopup.gameObject.SetActive(false);
+            GameManager.Instance.UIManager.EqPopup.text = "q et e pour ajuster l'angle le zoom";
+            GameManager.Instance.UIManager.ZoomPercentage.transform.parent.gameObject.SetActive(true);
         }
 
         _meshRenderer.material = normalMaterial;

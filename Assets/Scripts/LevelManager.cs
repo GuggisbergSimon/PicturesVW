@@ -10,7 +10,7 @@ public class LevelManager : MonoBehaviour
     public CinemachineVirtualCamera VCamera => _vCamera;
     private PortableCamera _pCamera;
     public PortableCamera PCamera => _pCamera;
-    
+
 
     private void Start()
     {
@@ -26,21 +26,24 @@ public class LevelManager : MonoBehaviour
         string path = Path.Combine(Application.persistentDataPath, "save.me");
         using (BinaryWriter writer = new BinaryWriter(File.Open(path, FileMode.Create)))
         {
+            //version of saveSystem, update each time it is changed
+            writer.Write((byte) 2);
             Vector3 v3 = _player.transform.position;
-            writer.Write((double) v3.x);
-            writer.Write((double) v3.y);
-            writer.Write((double) v3.z);
-            writer.Write((double) _vCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value);
-            writer.Write((double) _vCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value);
+            writer.Write((int) (v3.x * 10f));
+            writer.Write((int) (v3.y * 10f));
+            writer.Write((int) (v3.z * 10f));
+            Debug.Log(v3);
+            writer.Write((int) (_vCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value * 10f));
+            writer.Write((int) (_vCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value * 10f));
             v3 = _pCamera.transform.position;
-            writer.Write((double) v3.x);
-            writer.Write((double) v3.y);
-            writer.Write((double) v3.z);
+            writer.Write((int) (v3.x * 10f));
+            writer.Write((int) (v3.y * 10f));
+            writer.Write((int) (v3.z * 10f));
             v3 = _pCamera.transform.rotation.eulerAngles;
-            writer.Write((double) v3.x);
-            writer.Write((double) v3.y);
-            writer.Write((double) v3.z);
-            writer.Write((byte)_pCamera.Cam.fieldOfView);
+            writer.Write((int) (v3.x * 10f));
+            writer.Write((int) (v3.y * 10f));
+            writer.Write((int) (v3.z * 10f));
+            writer.Write((byte) _pCamera.Cam.fieldOfView);
         }
     }
 
@@ -49,19 +52,26 @@ public class LevelManager : MonoBehaviour
         string path = Path.Combine(Application.persistentDataPath, "save.me");
         using (BinaryReader reader = new BinaryReader(File.OpenRead(path)))
         {
-            _player.transform.position = Vector3.right * (float) reader.ReadDouble() +
-                                        Vector3.up * (float) reader.ReadDouble() +
-                                        Vector3.forward * (float) reader.ReadDouble();
-            _vCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value = (float) reader.ReadDouble();
-            _vCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value = (float) reader.ReadDouble();
-            _pCamera.transform.position = Vector3.right * (float) reader.ReadDouble() +
-                                         Vector3.up * (float) reader.ReadDouble() +
-                                         Vector3.forward * (float) reader.ReadDouble();
-            _pCamera.transform.rotation = Quaternion.Euler(Vector3.right * (float) reader.ReadDouble() +
-                                          Vector3.up * (float) reader.ReadDouble() +
-                                          Vector3.forward * (float) reader.ReadDouble());
-            _pCamera.Cam.fieldOfView = reader.ReadByte();
+            if (reader.ReadByte() == 2)
+            {
+                _player.transform.position = Vector3.right * reader.ReadInt32() / 10f +
+                                             Vector3.up * reader.ReadInt32() / 10f +
+                                             Vector3.forward * reader.ReadInt32() / 10f;
+                
+                Debug.Log(_player.transform.position);
+                _vCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value = reader.ReadInt32() / 10f;
+                _vCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value = reader.ReadInt32() / 10f;
+                _pCamera.transform.position = Vector3.right * reader.ReadInt32() / 10f +
+                                              Vector3.up * reader.ReadInt32() / 10f +
+                                              Vector3.forward * reader.ReadInt32() / 10f;
+                _pCamera.transform.rotation = Quaternion.Euler(Vector3.right * reader.ReadInt32() / 10f +
+                                                               Vector3.up * reader.ReadInt32() / 10f +
+                                                               Vector3.forward * reader.ReadInt32() / 10f);
+                _pCamera.Cam.fieldOfView = reader.ReadByte();
+            }
         }
+
         _pCamera.AdjustZoom(0);
+        //todo make player drop if they're holding the camera
     }
 }

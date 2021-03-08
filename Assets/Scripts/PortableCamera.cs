@@ -81,8 +81,6 @@ public class PortableCamera : MonoBehaviour
             {
                 c.enabled = false;
             }
-            
-            //todo reset position + rotation
         }
         else
         {

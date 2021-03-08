@@ -97,7 +97,8 @@ public class PlayerController : MonoBehaviour
             maxDistancePickUp) && hit.transform.CompareTag("PortableCamera"))
         {
             GameManager.Instance.UIManager.AltPopup.gameObject.SetActive(true);
-            GameManager.Instance.UIManager.EqPopup.text = "q et e pour ajuster l'angle de la caméra";
+            GameManager.Instance.UIManager.EqPopup2.gameObject.SetActive(true);
+            GameManager.Instance.UIManager.EqPopup1.gameObject.SetActive(false);
             GameManager.Instance.UIManager.ZoomPercentage.transform.parent.gameObject.SetActive(false);
             if (Input.GetButtonDown("Fire2"))
             {
@@ -133,7 +134,8 @@ public class PlayerController : MonoBehaviour
         else
         {
             GameManager.Instance.UIManager.AltPopup.gameObject.SetActive(false);
-            GameManager.Instance.UIManager.EqPopup.text = "q et e pour ajuster l'angle le zoom";
+            GameManager.Instance.UIManager.EqPopup2.gameObject.SetActive(false);
+            GameManager.Instance.UIManager.EqPopup1.gameObject.SetActive(true);
             GameManager.Instance.UIManager.ZoomPercentage.transform.parent.gameObject.SetActive(true);
         }
 

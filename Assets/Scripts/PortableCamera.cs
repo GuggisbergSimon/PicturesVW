@@ -60,7 +60,7 @@ public class PortableCamera : MonoBehaviour
             texture2D.ReadPixels(new Rect(0, 0, _renderTexture.width, _renderTexture.height), 0, 0);
             texture2D.Apply();
             //apply on hud
-            GameManager.Instance.UIManager.Feed.texture = texture2D;
+            GameManager.Instance.UIManager.CreatePicture(texture2D);
             //save as a file
             File.WriteAllBytes("capture.png",texture2D.EncodeToPNG());
         }

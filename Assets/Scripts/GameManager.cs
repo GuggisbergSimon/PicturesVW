@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     private PortableCamera _pCamera;
     public PortableCamera PCamera => _pCamera;
     public static GameManager Instance { get; private set; }
+    private bool _isPlayingScene;
 
     private void OnEnable()
     {
@@ -27,6 +28,7 @@ public class GameManager : MonoBehaviour
     private void OnLevelFinishedLoadingScene(Scene scene, LoadSceneMode mode)
     {
         Setup();
+        _isPlayingScene = _levelManager != null;
     }
 
     private void Setup()
@@ -73,11 +75,14 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
+        
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             QuitGame();
         }
-        else if (Input.GetKeyDown(KeyCode.F5))
+
+        if (!_isPlayingScene) return;
+        if (Input.GetKeyDown(KeyCode.F5))
         {
             _levelManager.Save();
         }

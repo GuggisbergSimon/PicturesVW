@@ -48,6 +48,12 @@ public class PlayerController : MonoBehaviour
         _stepsSinceLastJump = -1;
     }
 
+    public bool HasCamera
+    {
+        get => _hasCamera;
+        set => _hasCamera = value;
+    }
+
     private void OnValidate()
     {
         _minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
@@ -88,7 +94,13 @@ public class PlayerController : MonoBehaviour
             GameManager.Instance.LevelManager.VCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value,
             0f);
 
-        //Camera Pickup/Drop
+        Pickup();
+
+        _meshRenderer.material = normalMaterial;
+    }
+
+    public void Pickup()
+    {
         Transform head = transform.GetChild(0);
         head.localRotation = Quaternion.Euler(GameManager.Instance.LevelManager.VCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value, 0f, 0f);
         Ray r = new Ray(head.position, head.forward );
@@ -138,8 +150,6 @@ public class PlayerController : MonoBehaviour
             GameManager.Instance.UIManager.EqPopup1.gameObject.SetActive(true);
             GameManager.Instance.UIManager.ZoomPercentage.transform.parent.gameObject.SetActive(true);
         }
-
-        _meshRenderer.material = normalMaterial;
     }
 
     private void FixedUpdate()

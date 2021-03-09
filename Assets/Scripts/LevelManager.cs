@@ -57,8 +57,6 @@ public class LevelManager : MonoBehaviour
                 _player.transform.position = Vector3.right * reader.ReadInt32() / 10f +
                                              Vector3.up * reader.ReadInt32() / 10f +
                                              Vector3.forward * reader.ReadInt32() / 10f;
-                
-                Debug.Log(_player.transform.position);
                 _vCamera.GetCinemachineComponent<CinemachinePOV>().m_HorizontalAxis.Value = reader.ReadInt32() / 10f;
                 _vCamera.GetCinemachineComponent<CinemachinePOV>().m_VerticalAxis.Value = reader.ReadInt32() / 10f;
                 _pCamera.transform.position = Vector3.right * reader.ReadInt32() / 10f +
@@ -72,6 +70,7 @@ public class LevelManager : MonoBehaviour
         }
 
         _pCamera.AdjustZoom(0);
-        //todo make player drop if they're holding the camera
+        _player.HasCamera = false;
+        //todo have each object be reset in their own script
     }
 }

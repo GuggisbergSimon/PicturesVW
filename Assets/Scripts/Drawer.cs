@@ -1,35 +1,43 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 public class Drawer : MonoBehaviour
 {
-    [SerializeField] private Color color = Color.white;
-    private LineRenderer _lineRenderer;
+    [SerializeField] private float drawInterval = 0.5f;
+    [SerializeField] private LineRenderer linePrefab = default;
+    private LineRenderer _currentLine;
     private bool _isDrawing;
-    private void Awake()
-    {
-        _lineRenderer = GetComponent<LineRenderer>();
-    }
 
     private void Update()
     {
         if (Input.GetButtonDown("Fire1"))
         {
+            _currentLine = Instantiate(linePrefab, transform);
             _isDrawing = true;
-            _lineRenderer.positionCount = 0;
+            StartCoroutine(Draw());
         }
         else if (Input.GetButtonUp("Fire1"))
         {
             _isDrawing = false;
+            _currentLine = null;
+        }
+        else if (Input.GetButtonDown("Fire2") && !_isDrawing)
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                Destroy(transform.GetChild(i).gameObject);
+            }
         }
     }
 
-    private void FixedUpdate()
+    private IEnumerator Draw()
     {
-        if (_isDrawing)
+        while (_isDrawing)
         {
-            _lineRenderer.positionCount++;
-            _lineRenderer.SetPosition(_lineRenderer.positionCount-1, Input.mousePosition);
+            Debug.Log("test"); //it works, but not with currentline ,wtf TODO fix that shit
+            //_currentLine.SetPosition(_currentLine.positionCount++, Camera.current.ScreenToWorldPoint(Input.mousePosition + Vector3.forward * 10f));
+            yield return new WaitForSeconds(drawInterval);
         }
     }
 }

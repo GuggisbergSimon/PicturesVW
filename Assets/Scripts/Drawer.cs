@@ -5,7 +5,9 @@ using UnityEngine;
 public class Drawer : MonoBehaviour
 {
     [SerializeField] private float drawInterval = 0.5f;
+    [SerializeField] private float minDistToDraw = 0.1f;
     [SerializeField] private LineRenderer linePrefab = default;
+    [SerializeField] private Camera cam = default;
     private LineRenderer _currentLine;
     private bool _isDrawing;
 
@@ -33,10 +35,14 @@ public class Drawer : MonoBehaviour
 
     private IEnumerator Draw()
     {
+        //doesn't work for the initial case
         while (_isDrawing)
         {
-            Debug.Log("test"); //it works, but not with currentline ,wtf TODO fix that shit
-            //_currentLine.SetPosition(_currentLine.positionCount++, Camera.current.ScreenToWorldPoint(Input.mousePosition + Vector3.forward * 10f));
+            Vector3 newPos = cam.ScreenToWorldPoint(Input.mousePosition + Vector3.forward * 10f);
+            if (_currentLine.positionCount == 0 || Vector3.Distance(_currentLine.GetPosition(_currentLine.positionCount - 1), newPos) > minDistToDraw)
+            {
+                _currentLine.SetPosition(_currentLine.positionCount++, newPos);
+            }
             yield return new WaitForSeconds(drawInterval);
         }
     }

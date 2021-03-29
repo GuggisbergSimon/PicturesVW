@@ -74,10 +74,11 @@ public class Drawer : MonoBehaviour
 
         else if (Input.GetKeyDown(KeyCode.Keypad0))
         {
-            //todo save
+            //todo let user choose name of new gesture
             string newGestureName = "test";
 
             string fileName = $"{Application.persistentDataPath}/{newGestureName}-{DateTime.Now.ToFileTime()}.xml";
+            Debug.Log(fileName);
 #if !UNITY_WEBPLAYER
             GestureIO.WriteGesture(_points.ToArray(), newGestureName, fileName);
 #endif

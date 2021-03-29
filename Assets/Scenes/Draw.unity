@@ -166,7 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7c6562a785609548bf14b1c54fe23ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  drawInterval: 0.02
+  drawInterval: 0.01
   minDistToDraw: 0.2
   linePrefab: {fileID: 3360157333320549259, guid: 8123c240981147449843ff74bfc51513, type: 3}
   cam: {fileID: 1133578932}

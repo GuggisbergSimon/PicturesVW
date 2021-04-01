@@ -9,10 +9,12 @@ public class Drawer : MonoBehaviour
 {
     [SerializeField] private float drawInterval = 0.5f;
     [SerializeField] private float minDistToDraw = 0.1f;
+    [SerializeField] private float minScoreToDraw = 0.9f;
     [SerializeField] private LineRenderer linePrefab = default;
     [SerializeField] private Camera cam = default;
     private LineRenderer _currentLine;
     private bool _isDrawing;
+    private bool _isGuessed;
 
     private List<Gesture> _trainingSet = new List<Gesture>();
     private List<Point> _points = new List<Point>();
@@ -22,9 +24,11 @@ public class Drawer : MonoBehaviour
     private void Start()
     {
         //Load pre-made gestures
+        /*
         TextAsset[] gesturesXml = Resources.LoadAll<TextAsset>("GestureSet/10-stylus-MEDIUM/");
         foreach (TextAsset gestureXml in gesturesXml)
             _trainingSet.Add(GestureIO.ReadGestureFromXML(gestureXml.text));
+        */
 
         //Load user custom gestures
         string[] filePaths = Directory.GetFiles(Application.persistentDataPath, "*.xml");
@@ -36,6 +40,11 @@ public class Drawer : MonoBehaviour
     {
         if (Input.GetButtonDown("Fire1"))
         {
+            if (_isGuessed)
+            {
+                _isGuessed = false;
+                ClearStrokes();
+            }
             _isDrawing = true;
             ++_strokeId;
             _currentLine = Instantiate(linePrefab, transform);
@@ -47,31 +56,16 @@ public class Drawer : MonoBehaviour
         {
             _isDrawing = false;
             _currentLine = null;
+            ValidateGesture();
         }
         else if (Input.GetButtonDown("Fire2") && !_isDrawing)
         {
-            for (int i = transform.childCount - 1; i >= 0; i--)
-            {
-                Destroy(transform.GetChild(i).gameObject);
-            }
+            ClearStrokes();
         }
-        else if (Input.GetKeyDown(KeyCode.KeypadEnter))
+        else if (Input.GetButtonDown("Fire3"))
         {
-            Gesture candidate = new Gesture(_points.ToArray());
-            Result gestureResult = PointCloudRecognizer.Classify(candidate, _trainingSet.ToArray());
-            Debug.Log(gestureResult.GestureClass + " " + gestureResult.Score);
-
-            _isDrawing = false;
-            _strokeId = -1;
-            _points.Clear();
-            foreach (LineRenderer lineRenderer in _gestureLinesRenderer)
-            {
-                Destroy(lineRenderer.gameObject);
-            }
-
-            _gestureLinesRenderer.Clear();
+            
         }
-
         else if (Input.GetKeyDown(KeyCode.Keypad0))
         {
             //todo let user choose name of new gesture
@@ -84,6 +78,53 @@ public class Drawer : MonoBehaviour
 #endif
             _trainingSet.Add(new Gesture(_points.ToArray(), newGestureName));
         }
+    }
+
+    private void ValidateGesture()
+    {
+        if (_points == null) return;
+        Gesture candidate = new Gesture(_points.ToArray());
+        Result gestureResult = PointCloudRecognizer.Classify(candidate, _trainingSet.ToArray());
+            
+        if (gestureResult.Score > minScoreToDraw)
+        {
+            Debug.Log(gestureResult.GestureClass + " " + gestureResult.Score);
+            _isGuessed = true;
+            if (gestureResult.GestureClass.Equals("NotInfinity"))
+            {
+                foreach (var line in _gestureLinesRenderer)
+                {
+                    line.startColor = Color.red;
+                    line.endColor = Color.blue;
+                }
+            }
+            else if (gestureResult.GestureClass.Equals("FivePointStar"))
+            {
+                foreach (var line in _gestureLinesRenderer)
+                {
+                    line.startColor = Color.yellow;
+                    line.endColor = Color.magenta;
+                }
+            }
+        }
+        else
+        {
+            ClearStrokes();
+        }
+    }
+
+    private void ClearStrokes()
+    {
+        
+        _isDrawing = false;
+        _strokeId = -1;
+        _points.Clear();
+        foreach (LineRenderer lineRenderer in _gestureLinesRenderer)
+        {
+            Destroy(lineRenderer.gameObject);
+        }
+
+        _gestureLinesRenderer.Clear();
     }
 
     private IEnumerator Draw()

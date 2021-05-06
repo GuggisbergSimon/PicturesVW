@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 //little script to keep focus on ui elements in menus
 public class InitializeButton : MonoBehaviour

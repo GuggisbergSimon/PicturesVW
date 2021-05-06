@@ -6,6 +6,7 @@ TagManager:
   tags:
   - PortableCamera
   - Target
+  - Interactable
   layers:
   - Default
   - TransparentFX
